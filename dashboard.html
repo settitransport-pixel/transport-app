@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport — Dashboard</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
+:root{--bg:#0b0e18;--surface:#13172a;--surface2:#1c2035;--border:#262c4a;--accent:#4f8fff;--accent2:#38d9a9;--warn:#ff9f43;--danger:#ff6b6b;--text:#e8eaf6;--muted:#6b7280;--radius:14px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);padding:28px 16px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.logo{font-size:16px;font-weight:600;padding:0 8px 24px;display:flex;align-items:center;gap:8px;}
+.logo-dot{width:10px;height:10px;border-radius:50%;background:var(--accent2);}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;color:var(--muted);transition:background .15s,color .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:rgba(79,143,255,.12);color:var(--accent);}
+.nav-icon{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--warn);color:#1a0a00;font-size:11px;font-weight:600;border-radius:20px;padding:1px 7px;}
+.main{flex:1;overflow-y:auto;padding:32px;}
+.page{display:none;}.page.active{display:block;}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;}
+.page-title{font-size:22px;font-weight:600;}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+/* notif */
+.notif-banner{background:linear-gradient(135deg,rgba(255,159,67,.14),rgba(255,159,67,.04));border:1px solid rgba(255,159,67,.28);border-radius:var(--radius);padding:20px 24px;margin-bottom:16px;display:flex;align-items:flex-start;gap:16px;overflow:hidden;transition:opacity .3s,max-height .35s,padding .35s,margin .35s;max-height:600px;}
+.notif-dot{width:10px;height:10px;border-radius:50%;background:var(--warn);margin-top:5px;flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,159,67,.4);}50%{box-shadow:0 0 0 8px rgba(255,159,67,0);}}
+.notif-content{flex:1;min-width:0;}
+.notif-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.notif-detail{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.notif-fields{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px;align-items:flex-start;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;}
+.field-val{font-family:'DM Mono',monospace;font-size:13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;}
+.notif-photo-box{width:88px;height:68px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;line-height:1.4;cursor:pointer;overflow:hidden;}
+.notif-photo-box img{width:100%;height:100%;object-fit:cover;}
+.notif-photo-box:hover{border-color:var(--accent);}
+.notif-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+/* buttons */
+.btn-sm{padding:8px 18px;border-radius:8px;border:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;}
+.btn-sm:hover{opacity:.85;}
+.btn-confirm{background:var(--accent2);color:#0a1a14;}
+.btn-cancel{background:var(--surface2);color:var(--muted);border:1px solid var(--border);}
+.btn-add{background:var(--accent);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
+/* stats */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:16px;margin-bottom:28px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.stat-val{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;margin-bottom:4px;}
+.stat-label{font-size:12px;color:var(--muted);}
+.stat-delta{font-size:12px;margin-top:8px;}
+.up{color:var(--accent2);}.down{color:var(--danger);}
+/* table */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px;}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.table-title{font-size:14px;font-weight:600;}
+table{width:100%;border-collapse:collapse;}
+th{padding:12px 20px;text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--border);}
+td{padding:12px 20px;font-size:13px;border-bottom:1px solid rgba(38,44,74,.5);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(255,255,255,.018);}
+.km-mono{font-family:'DM Mono',monospace;font-size:13px;}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-green{background:rgba(56,217,169,.12);color:var(--accent2);}
+.badge-red{background:rgba(255,107,107,.12);color:var(--danger);}
+.badge-blue{background:rgba(79,143,255,.12);color:var(--accent);}
+.badge-orange{background:rgba(255,159,67,.12);color:var(--warn);}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+.src-tag{font-size:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:1px 6px;color:var(--muted);}
+.src-tag.photo{color:var(--accent2);border-color:rgba(56,217,169,.3);}
+/* manage */
+.manage-list{display:flex;flex-direction:column;gap:10px;}
+.manage-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;align-items:center;gap:16px;}
+.manage-avatar{width:38px;height:38px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:var(--accent);flex-shrink:0;border:1.5px solid var(--border);}
+.manage-name{font-size:14px;font-weight:500;}
+.manage-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.manage-actions{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;}
+.action-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:border-color .15s,color .15s;}
+.action-btn:hover{border-color:var(--accent);color:var(--accent);}
+.action-btn.del:hover{border-color:var(--danger);color:var(--danger);}
+.toggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0;}
+.toggle input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:10px;transition:background .2s;}
+.toggle input:checked+.toggle-track{background:var(--accent2);}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;}
+.toggle input:checked~.toggle-thumb{transform:translateX(16px);}
+/* qr */
+.qr-placeholder{width:54px;height:54px;background:var(--surface2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border:1px solid var(--border);cursor:pointer;transition:border-color .2s;flex-shrink:0;}
+.qr-placeholder:hover{border-color:var(--accent);}
+.qr-grid{display:grid;grid-template-columns:repeat(5,7px);gap:1px;}
+.qr-cell{width:7px;height:7px;border-radius:1px;}
+.qr-label{font-size:9px;color:var(--muted);}
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;color:var(--muted);margin-bottom:6px;display:block;}
+.form-input{width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;outline:none;transition:border-color .2s;}
+.form-input:focus{border-color:var(--accent);}
+.form-input::placeholder{color:var(--muted);}
+select.form-input{cursor:pointer;}
+textarea.form-input{resize:vertical;min-height:72px;line-height:1.5;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-section{font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin:18px 0 12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.modal-actions{display:flex;gap:8px;margin-top:22px;justify-content:flex-end;}
+.delete-box{background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.22);border-radius:10px;padding:16px;margin-top:4px;}
+.delete-box p{font-size:13px;color:var(--muted);margin-bottom:14px;}
+.delete-box p strong{color:var(--danger);}
+.delete-actions{display:flex;gap:8px;}
+.checkbox-row{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;}
+.checkbox-row input{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;}
+.photo-pair{display:flex;gap:12px;margin-bottom:8px;}
+.photo-empty{width:100px;height:76px;border-radius:8px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;background:var(--surface2);}
+.photo-real{width:100px;height:76px;border-radius:8px;object-fit:cover;border:1.5px solid var(--accent2);}
+.photo-cap{font-size:11px;color:var(--muted);margin-top:5px;text-align:center;}
+/* spinner / loading */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-row{text-align:center;padding:32px;color:var(--muted);font-size:14px;}
+/* toast */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);padding:12px 22px;border-radius:10px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:200;}
+.toast.show{opacity:1;}
+.toast-success{background:var(--accent2);color:#0a1a14;}
+.toast-danger{background:var(--danger);color:#fff;}
+/* qr modal */
+.qr-big{text-align:center;padding:20px;}
+.qr-big canvas{border-radius:12px;}
+.qr-url{font-family:'DM Mono',monospace;font-size:12px;color:var(--muted);margin-top:12px;word-break:break-all;}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo"><div class="logo-dot"></div>TransportPro</div>
+  <button class="nav-item active" data-page="tableau">
+    <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+    Tableau de bord <span class="nav-badge" id="navBadge" style="display:none">0</span>
+  </button>
+  <button class="nav-item" data-page="trajets">
+    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2"/><path d="M13 13h8M13 17h8M13 9h8"/></svg>
+    Trajets
+  </button>
+  <button class="nav-item" data-page="chauffeurs">
+    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Chauffeurs
+  </button>
+  <button class="nav-item" data-page="camions">
+    <svg class="nav-icon" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+    Camions
+  </button>
+  <button class="nav-item" data-page="clients">
+    <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+    Clients
+  </button>
+</div>
+
+<div class="main">
+  <div class="page active" id="page-tableau">
+    <div class="page-header">
+      <div><div class="page-title">Tableau de bord</div><div class="page-sub" id="todayDate"></div></div>
+      <button class="btn-sm btn-add" id="btn-refresh">Actualiser</button>
+    </div>
+    <div id="notifContainer"><div class="loading-row"><span class="spinner"></span>Chargement...</div></div>
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-val" id="stat-today" style="color:var(--accent)">—</div><div class="stat-label">Trajets aujourd'hui</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-km" style="color:var(--accent2)">—</div><div class="stat-label">KM cette semaine</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-camions" style="color:var(--warn)">—</div><div class="stat-label">Camions actifs</div></div>
+      <div class="stat-card"><div class="stat-val" id="stat-pending" style="color:var(--text)">—</div><div class="stat-label">En attente validation</div></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><div class="table-title">Trajets du jour</div></div>
+      <table><thead><tr><th>Camion</th><th>Chauffeur</th><th>Client</th><th>KM</th><th>Durée</th><th>Statut</th><th></th></tr></thead>
+      <tbody id="tbody-today"><tr><td colspan="7" class="loading-row"><span class="spinner"></span>Chargement...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="page" id="page-trajets">
+    <div class="page-header">
+      <div><div class="page-title">Trajets</div><div class="page-sub">Historique complet</div></div>
+      <button class="btn-sm btn-add" id="btn-add-manuel">+ Ajouter manuel</button>
+    </div>
+    <div class="table-card">
+      <table><thead><tr><th>Date</th><th>Camion</th><th>Chauffeur</th><th>Client</th><th>KM déb.</th><th>KM fin</th><th>Dist.</th><th>Statut</th><th>Source</th><th></th></tr></thead>
+      <tbody id="tbody-history"><tr><td colspan="10" class="loading-row"><span class="spinner"></span>Chargement...</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <div class="page" id="page-chauffeurs">
+    <div class="page-header">
+      <div><div class="page-title">Chauffeurs</div><div class="page-sub">Gérer votre équipe</div></div>
+      <button class="btn-sm btn-add" id="btn-add-driver">+ Ajouter</button>
+    </div>
+    <div class="manage-list" id="list-chauffeurs"><div class="loading-row"><span class="spinner"></span>Chargement...</div></div>
+  </div>
+
+  <div class="page" id="page-camions">
+    <div class="page-header">
+      <div><div class="page-title">Camions</div><div class="page-sub">QR codes et affectations</div></div>
+      <button class="btn-sm btn-add" id="btn-add-truck">+ Ajouter</button>
+    </div>
+    <div class="manage-list" id="list-camions"><div class="loading-row"><span class="spinner"></span>Chargement...</div></div>
+  </div>
+
+  <div class="page" id="page-clients">
+    <div class="page-header">
+      <div><div class="page-title">Clients</div><div class="page-sub">Carnet d'adresses</div></div>
+      <button class="btn-sm btn-add" id="btn-add-client">+ Ajouter</button>
+    </div>
+    <div class="manage-list" id="list-clients"><div class="loading-row"><span class="spinner"></span>Chargement...</div></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modal"><div class="modal">
+  <div class="modal-title" id="modalTitle"></div>
+  <div class="modal-sub" id="modalSub"></div>
+  <div id="modalBody"></div>
+  <div class="modal-actions" id="modalActions"></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ═══════════════ CONFIG
+const SUPA_URL = 'https://bbkmlnaskmgawkkmhzvh.supabase.co';
+const SUPA_KEY = 'sb_publishable_Ma2c6MV9MmWmyi6B-LX6LQ_oLQLxVqv';
+const BASE_URL = window.location.origin; // URL de votre site Vercel
+
+// ═══════════════ SUPABASE HELPERS
+async function db(path, opts = {}) {
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(opts.headers || {}),
+    },
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+  return text ? JSON.parse(text) : null;
+}
+
+// ═══════════════ STATE
+let allChauffeurs = [], allCamions = [], allClients = [], allTrajets = [];
+let ctx = null;
+
+// ═══════════════ TOAST
+let tt;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast toast-${type} show`;
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════ MODAL
+function openModal(title, sub, body, setupActions) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalSub').textContent = sub || '';
+  document.getElementById('modalBody').innerHTML = body;
+  document.getElementById('modalActions').innerHTML = '';
+  setupActions(document.getElementById('modalActions'));
+  document.getElementById('modal').classList.add('show');
+}
+function closeModal() { document.getElementById('modal').classList.remove('show'); ctx = null; }
+document.getElementById('modal').addEventListener('click', e => { if (e.target === document.getElementById('modal')) closeModal(); });
+
+// ═══════════════ HELPERS
+const SBADGE = { 'Validé': 'badge-green', 'En attente': 'badge-orange', 'En route': 'badge-blue', 'Annulé': 'badge-red' };
+function sel(arr, cur, valKey = null, labelKey = null) {
+  return arr.map(v => {
+    const val = valKey ? v[valKey] : v;
+    const label = labelKey ? v[labelKey] : v;
+    return `<option value="${val}" ${val === cur || label === cur ? 'selected' : ''}>${label}</option>`;
+  }).join('');
+}
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('fr-FR') : '—'; }
+function fmtTime(d) { return d ? new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—'; }
+function camionUrl(num) { return `${BASE_URL}/chauffeur.html?camion=${num}`; }
+
+// ═══════════════ LOAD DATA
+async function loadAll() {
+  try {
+    [allChauffeurs, allCamions, allClients, allTrajets] = await Promise.all([
+      db('chauffeurs?order=nom'),
+      db('camions?order=numero&select=*,chauffeur:chauffeurs(id,nom),client:clients(id,nom)'),
+      db('clients?order=nom'),
+      db('trajets?order=created_at.desc&limit=100&select=*,camion:camions(numero),chauffeur:chauffeurs(nom),client:clients(nom)'),
+    ]);
+    renderAll();
+  } catch (e) {
+    showToast('Erreur chargement : ' + e.message, 'danger');
+  }
+}
+
+function renderAll() {
+  renderNotifs();
+  renderToday();
+  renderHistory();
+  renderStats();
+  renderDrivers();
+  renderTrucks();
+  renderClients();
+}
+
+// ═══════════════ STATS
+function renderStats() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayT = allTrajets.filter(t => t.date === today);
+  const pending = allTrajets.filter(t => t.statut === 'En attente');
+  const week = allTrajets.filter(t => {
+    const d = new Date(t.date);
+    const now = new Date();
+    const diff = (now - d) / 86400000;
+    return diff <= 7;
+  });
+  const kmWeek = week.reduce((s, t) => s + (t.distance || 0), 0);
+  const activeTrucks = allCamions.filter(c => c.actif).length;
+
+  document.getElementById('stat-today').textContent = todayT.length;
+  document.getElementById('stat-km').textContent = kmWeek.toLocaleString('fr-FR');
+  document.getElementById('stat-camions').textContent = activeTrucks + '/' + allCamions.length;
+  document.getElementById('stat-pending').textContent = pending.length;
+
+  const badge = document.getElementById('navBadge');
+  if (pending.length > 0) {
+    badge.textContent = pending.length;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ═══════════════ NOTIFS (trajets En attente)
+function renderNotifs() {
+  const pending = allTrajets.filter(t => t.statut === 'En attente');
+  const container = document.getElementById('notifContainer');
+  if (pending.length === 0) { container.innerHTML = ''; return; }
+
+  container.innerHTML = pending.map(t => `
+    <div class="notif-banner" id="notif-${t.id}">
+      <div class="notif-dot"></div>
+      <div class="notif-content">
+        <div class="notif-title">Fin de poste — Camion ${t.camion?.numero || '?'}</div>
+        <div class="notif-detail">${fmtDate(t.date)} · ${fmtTime(t.heure_debut)} → ${fmtTime(t.heure_fin)} · Distance : ${t.distance || '?'} km</div>
+        <div class="notif-fields">
+          <div>
+            <div class="field-label" style="margin-bottom:8px">Photos</div>
+            <div style="display:flex;gap:10px">
+              <div style="text-align:center">
+                <div class="notif-photo-box" ${t.photo_debut_url ? `onclick="window.open('${t.photo_debut_url}','_blank')"` : ''}>
+                  ${t.photo_debut_url ? `<img src="${t.photo_debut_url}">` : 'Début<br>—'}
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px">${t.km_debut ? t.km_debut.toLocaleString('fr-FR') + ' km' : '—'}</div>
+              </div>
+              <div style="text-align:center">
+                <div class="notif-photo-box" ${t.photo_fin_url ? `onclick="window.open('${t.photo_fin_url}','_blank')"` : ''}>
+                  ${t.photo_fin_url ? `<img src="${t.photo_fin_url}">` : 'Fin<br>—'}
+                </div>
+                <div style="font-size:10px;color:var(--muted);margin-top:4px">${t.km_fin ? t.km_fin.toLocaleString('fr-FR') + ' km' : '—'}</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="field-group"><div class="field-label">Chauffeur</div>
+              <select class="form-input" id="nc-driver-${t.id}" style="min-width:140px;padding:8px 12px;font-size:13px">
+                ${sel(allChauffeurs, t.chauffeur?.nom, 'id', 'nom')}
+              </select></div>
+            <div class="field-group"><div class="field-label">Client</div>
+              <select class="form-input" id="nc-client-${t.id}" style="min-width:180px;padding:8px 12px;font-size:13px">
+                ${sel(allClients, t.client?.nom, 'id', 'nom')}
+              </select></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div class="field-group"><div class="field-label">Distance</div><div class="field-val">${t.distance || '—'} km</div></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <div class="field-label" style="margin-bottom:6px">Remarque</div>
+          <textarea class="form-input" id="nc-remark-${t.id}" rows="2" placeholder="Ajouter une remarque...">${t.remarque || ''}</textarea>
+        </div>
+        <div class="notif-actions">
+          <button class="btn-sm btn-confirm" data-confirm="${t.id}">Confirmer et valider</button>
+          <button class="btn-sm btn-cancel" data-dismiss="${t.id}">Ignorer</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  container.querySelectorAll('[data-confirm]').forEach(btn => {
+    btn.addEventListener('click', () => confirmTrajet(btn.dataset.confirm));
+  });
+  container.querySelectorAll('[data-dismiss]').forEach(btn => {
+    btn.addEventListener('click', () => dismissNotif(btn.dataset.dismiss));
+  });
+}
+
+async function confirmTrajet(id) {
+  try {
+    const driverSel = document.getElementById('nc-driver-' + id);
+    const clientSel = document.getElementById('nc-client-' + id);
+    const remark    = document.getElementById('nc-remark-' + id);
+    await db(`trajets?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        chauffeur_id: driverSel?.value,
+        client_id:    clientSel?.value,
+        remarque:     remark?.value || '',
+        statut:       'Validé',
+      }),
+    });
+    const el = document.getElementById('notif-' + id);
+    el.style.maxHeight = el.offsetHeight + 'px';
+    requestAnimationFrame(() => { el.style.opacity = '0'; el.style.maxHeight = '0'; el.style.padding = '0'; el.style.margin = '0'; });
+    setTimeout(() => { el.remove(); loadAll(); }, 380);
+    showToast('Trajet validé ✓');
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+function dismissNotif(id) {
+  const el = document.getElementById('notif-' + id);
+  el.style.opacity = '0'; el.style.maxHeight = '0'; el.style.padding = '0'; el.style.margin = '0';
+  setTimeout(() => el.remove(), 380);
+}
+
+// ═══════════════ TODAY TABLE
+function renderToday() {
+  const today = new Date().toISOString().split('T')[0];
+  const todayT = allTrajets.filter(t => t.date === today);
+  document.getElementById('tbody-today').innerHTML = todayT.length === 0
+    ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--muted)">Aucun trajet aujourd\'hui</td></tr>'
+    : todayT.map(t => `
+      <tr>
+        <td class="km-mono">${t.camion?.numero || '?'}</td>
+        <td>${t.chauffeur?.nom || '—'}</td>
+        <td>${t.client?.nom || '—'}</td>
+        <td class="km-mono">${t.distance ? t.distance + ' km' : '—'}</td>
+        <td>${t.heure_debut && t.heure_fin ? calcDuree(t.heure_debut, t.heure_fin) : 'En cours'}</td>
+        <td><span class="badge ${SBADGE[t.statut] || 'badge-orange'}"><span class="badge-dot"></span>${t.statut}</span></td>
+        <td><button class="action-btn" data-edit-trajet="${t.id}">Modifier</button></td>
+      </tr>`).join('');
+  attachTrajetListeners(document.getElementById('tbody-today'));
+}
+
+// ═══════════════ HISTORY TABLE
+function renderHistory() {
+  document.getElementById('tbody-history').innerHTML = allTrajets.length === 0
+    ? '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted)">Aucun trajet</td></tr>'
+    : allTrajets.map(t => `
+      <tr>
+        <td>${fmtDate(t.date)}</td>
+        <td class="km-mono">${t.camion?.numero || '?'}</td>
+        <td>${t.chauffeur?.nom || '—'}</td>
+        <td>${t.client?.nom || '—'}</td>
+        <td class="km-mono">${t.km_debut ? t.km_debut.toLocaleString('fr-FR') : '—'}</td>
+        <td class="km-mono">${t.km_fin ? t.km_fin.toLocaleString('fr-FR') : '—'}</td>
+        <td class="km-mono">${t.distance ? t.distance + ' km' : '—'}</td>
+        <td><span class="badge ${SBADGE[t.statut] || 'badge-orange'}"><span class="badge-dot"></span>${t.statut}</span></td>
+        <td><span class="src-tag ${t.source}">${t.source === 'photo' ? 'Photo' : 'Manuel'}</span></td>
+        <td><button class="action-btn" data-edit-trajet="${t.id}">Modifier</button></td>
+      </tr>`).join('');
+  attachTrajetListeners(document.getElementById('tbody-history'));
+}
+
+function attachTrajetListeners(tbody) {
+  tbody.querySelectorAll('[data-edit-trajet]').forEach(btn => {
+    btn.addEventListener('click', () => openTrajetModal(btn.dataset.editTrajet));
+  });
+}
+
+function calcDuree(debut, fin) {
+  const diff = Math.round((new Date(fin) - new Date(debut)) / 60000);
+  return Math.floor(diff / 60) + 'h' + String(diff % 60).padStart(2, '0');
+}
+
+// ═══════════════ TRAJET MODAL
+function openTrajetModal(id) {
+  const t = allTrajets.find(x => x.id === id);
+  if (!t) return;
+  ctx = { type: 'trajet', id };
+  openModal(
+    'Modifier le trajet — Camion ' + (t.camion?.numero || '?'),
+    fmtDate(t.date) + ' · Source : ' + t.source,
+    `<div class="form-section">Photos</div>
+     <div class="photo-pair">
+       <div>
+         ${t.photo_debut_url ? `<img class="photo-real" src="${t.photo_debut_url}" onclick="window.open('${t.photo_debut_url}','_blank')" style="cursor:pointer">` : '<div class="photo-empty">Pas de photo<br>début</div>'}
+         <div class="photo-cap">Début de poste</div>
+       </div>
+       <div>
+         ${t.photo_fin_url ? `<img class="photo-real" src="${t.photo_fin_url}" onclick="window.open('${t.photo_fin_url}','_blank')" style="cursor:pointer">` : '<div class="photo-empty">Pas de photo<br>fin</div>'}
+         <div class="photo-cap">Fin de poste</div>
+       </div>
+     </div>
+     <div class="form-section">Informations</div>
+     <div class="form-row">
+       <div class="form-group"><label class="form-label">Chauffeur</label>
+         <select class="form-input" id="t-driver">${sel(allChauffeurs, t.chauffeur_id, 'id', 'nom')}</select></div>
+       <div class="form-group"><label class="form-label">Client</label>
+         <select class="form-input" id="t-client">${sel(allClients, t.client_id, 'id', 'nom')}</select></div>
+     </div>
+     <div class="form-row">
+       <div class="form-group"><label class="form-label">KM début</label>
+         <input class="form-input" id="t-kmd" type="number" value="${t.km_debut || ''}"></div>
+       <div class="form-group"><label class="form-label">KM fin</label>
+         <input class="form-input" id="t-kmf" type="number" value="${t.km_fin || ''}"></div>
+     </div>
+     <div class="form-group"><label class="form-label">Statut</label>
+       <select class="form-input" id="t-statut">${sel(['En attente','En route','Validé','Annulé'], t.statut)}</select></div>
+     <div class="form-group"><label class="form-label">Remarque</label>
+       <textarea class="form-input" id="t-remark">${t.remarque || ''}</textarea></div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Annuler'; bC.addEventListener('click', closeModal);
+      const bS = document.createElement('button'); bS.className = 'btn-sm btn-add'; bS.textContent = 'Enregistrer'; bS.addEventListener('click', () => saveTrajet(id));
+      ac.append(bC, bS);
+    }
+  );
+}
+
+async function saveTrajet(id) {
+  try {
+    const kmd = parseInt(document.getElementById('t-kmd').value) || null;
+    const kmf = parseInt(document.getElementById('t-kmf').value) || null;
+    await db(`trajets?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        chauffeur_id: document.getElementById('t-driver').value,
+        client_id:    document.getElementById('t-client').value,
+        km_debut:     kmd,
+        km_fin:       kmf,
+        statut:       document.getElementById('t-statut').value,
+        remarque:     document.getElementById('t-remark').value,
+      }),
+    });
+    await loadAll();
+    showToast('Trajet modifié ✓');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ TRAJET MANUEL
+function openTrajetManuel() {
+  ctx = { type: 'trajet-manuel' };
+  const today = new Date().toLocaleDateString('fr-FR');
+  openModal(
+    'Ajouter un trajet manuellement', 'Saisie directe sans photo',
+    `<div class="form-row">
+       <div class="form-group"><label class="form-label">Date</label>
+         <input class="form-input" id="m-date" type="text" value="${today}"></div>
+       <div class="form-group"><label class="form-label">Camion</label>
+         <select class="form-input" id="m-camion">${sel(allCamions, null, 'id', v => 'Camion ' + v.numero)}</select></div>
+     </div>
+     <div class="form-row">
+       <div class="form-group"><label class="form-label">Chauffeur</label>
+         <select class="form-input" id="m-driver">${sel(allChauffeurs, null, 'id', 'nom')}</select></div>
+       <div class="form-group"><label class="form-label">Client</label>
+         <select class="form-input" id="m-client">${sel(allClients, null, 'id', 'nom')}</select></div>
+     </div>
+     <div class="form-row">
+       <div class="form-group"><label class="form-label">KM début</label>
+         <input class="form-input" id="m-kmd" type="number" placeholder="Ex: 45230"></div>
+       <div class="form-group"><label class="form-label">KM fin</label>
+         <input class="form-input" id="m-kmf" type="number" placeholder="Ex: 45618"></div>
+     </div>
+     <div class="form-row">
+       <div class="form-group"><label class="form-label">Statut</label>
+         <select class="form-input" id="m-statut">${sel(['Validé','En attente','Annulé'], 'Validé')}</select></div>
+     </div>
+     <div class="form-group"><label class="form-label">Remarque</label>
+       <textarea class="form-input" id="m-remark" placeholder="Raison de la saisie manuelle..."></textarea></div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Annuler'; bC.addEventListener('click', closeModal);
+      const bS = document.createElement('button'); bS.className = 'btn-sm btn-add'; bS.textContent = 'Ajouter'; bS.addEventListener('click', saveManuel);
+      ac.append(bC, bS);
+    }
+  );
+  // Fix select with function label
+  const camSel = document.getElementById('m-camion');
+  if (camSel) {
+    camSel.innerHTML = allCamions.map(c => `<option value="${c.id}">Camion ${c.numero}</option>`).join('');
+  }
+}
+
+async function saveManuel() {
+  try {
+    const dateRaw = document.getElementById('m-date').value;
+    const parts = dateRaw.split('/');
+    const dateISO = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : dateRaw;
+    await db('trajets', {
+      method: 'POST',
+      body: JSON.stringify({
+        date:         dateISO,
+        camion_id:    document.getElementById('m-camion').value,
+        chauffeur_id: document.getElementById('m-driver').value,
+        client_id:    document.getElementById('m-client').value,
+        km_debut:     parseInt(document.getElementById('m-kmd').value) || null,
+        km_fin:       parseInt(document.getElementById('m-kmf').value) || null,
+        statut:       document.getElementById('m-statut').value,
+        remarque:     document.getElementById('m-remark').value,
+        source:       'manuel',
+      }),
+    });
+    await loadAll();
+    showToast('Trajet ajouté ✓');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ DRIVERS
+function renderDrivers() {
+  const list = document.getElementById('list-chauffeurs');
+  list.innerHTML = allChauffeurs.length === 0
+    ? '<div class="loading-row">Aucun chauffeur</div>'
+    : allChauffeurs.map(d => `
+    <div class="manage-item">
+      <div class="manage-avatar">${d.nom[0]}</div>
+      <div><div class="manage-name">${d.nom}</div><div class="manage-sub">${d.tel || '—'}</div></div>
+      <div class="manage-actions">
+        <label class="toggle"><input type="checkbox" class="toggle-actif" data-id="${d.id}" ${d.actif ? 'checked' : ''}><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+        <span class="badge ${d.actif ? 'badge-green' : 'badge-red'}">${d.actif ? 'Actif' : 'Inactif'}</span>
+        <button class="action-btn" data-edit-driver="${d.id}">Modifier</button>
+        <button class="action-btn del" data-del-driver="${d.id}">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('[data-edit-driver]').forEach(b => b.addEventListener('click', () => openDriverModal(b.dataset.editDriver, 'edit')));
+  list.querySelectorAll('[data-del-driver]').forEach(b => b.addEventListener('click', () => openDeleteModal('chauffeurs', b.dataset.delDriver)));
+  list.querySelectorAll('.toggle-actif').forEach(cb => cb.addEventListener('change', async () => {
+    await db(`chauffeurs?id=eq.${cb.dataset.id}`, { method: 'PATCH', body: JSON.stringify({ actif: cb.checked }) });
+    await loadAll();
+    showToast(cb.checked ? 'Chauffeur activé' : 'Chauffeur désactivé', cb.checked ? 'success' : 'danger');
+  }));
+}
+
+function openDriverModal(id, action) {
+  const d = action === 'edit' ? allChauffeurs.find(x => x.id === id) : {};
+  ctx = { type: 'driver', action, id };
+  openModal(
+    action === 'edit' ? 'Modifier le chauffeur' : 'Nouveau chauffeur', '',
+    `<div class="form-group"><label class="form-label">Nom complet</label><input class="form-input" id="f-nom" type="text" placeholder="Ex: Ahmed" value="${d?.nom || ''}"></div>
+     <div class="form-group"><label class="form-label">Téléphone</label><input class="form-input" id="f-tel" type="text" placeholder="+213 555 000" value="${d?.tel || ''}"></div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Annuler'; bC.addEventListener('click', closeModal);
+      const bS = document.createElement('button'); bS.className = 'btn-sm btn-add'; bS.textContent = 'Enregistrer'; bS.addEventListener('click', saveDriver);
+      ac.append(bC, bS);
+    }
+  );
+}
+
+async function saveDriver() {
+  const { action, id } = ctx;
+  const nom = document.getElementById('f-nom').value.trim();
+  const tel = document.getElementById('f-tel').value.trim();
+  if (!nom) { showToast('Le nom est requis', 'danger'); return; }
+  try {
+    if (action === 'edit') await db(`chauffeurs?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ nom, tel }) });
+    else await db('chauffeurs', { method: 'POST', body: JSON.stringify({ nom, tel }) });
+    await loadAll();
+    showToast(action === 'edit' ? 'Modifié ✓' : 'Ajouté ✓');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ TRUCKS
+function renderTrucks() {
+  const list = document.getElementById('list-camions');
+  list.innerHTML = allCamions.length === 0
+    ? '<div class="loading-row">Aucun camion</div>'
+    : allCamions.map(t => `
+    <div class="manage-item">
+      <div class="qr-placeholder" data-qr-num="${t.numero}" title="Voir QR code">
+        <div class="qr-grid" id="qr${t.id}"></div><span class="qr-label">QR ${t.numero}</span>
+      </div>
+      <div>
+        <div class="manage-name">Camion ${t.numero}</div>
+        <div class="manage-sub">Immat : ${t.immatriculation || '—'}</div>
+        <div class="manage-sub" style="margin-top:3px">
+          <span style="color:var(--accent2)">Chauffeur :</span> ${t.chauffeur?.nom || '—'} &nbsp;·&nbsp;
+          <span style="color:var(--warn)">Client :</span> ${t.client?.nom || '—'}
+        </div>
+      </div>
+      <div class="manage-actions">
+        <span class="badge ${t.actif ? 'badge-green' : 'badge-red'}"><span class="badge-dot"></span>${t.actif ? 'Actif' : 'Inactif'}</span>
+        <button class="action-btn" data-edit-truck="${t.id}">Modifier</button>
+        <button class="action-btn" data-qr-num="${t.numero}">QR code</button>
+        <button class="action-btn del" data-del-truck="${t.id}">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  allCamions.forEach(t => makeQR('qr' + t.id));
+  list.querySelectorAll('[data-edit-truck]').forEach(b => b.addEventListener('click', () => openTruckModal(b.dataset.editTruck, 'edit')));
+  list.querySelectorAll('[data-del-truck]').forEach(b => b.addEventListener('click', () => openDeleteModal('camions', b.dataset.delTruck)));
+  list.querySelectorAll('[data-qr-num]').forEach(b => b.addEventListener('click', () => showQRModal(b.dataset.qrNum)));
+}
+
+function showQRModal(num) {
+  const url = camionUrl(num);
+  openModal(
+    'QR Code — Camion ' + num,
+    'Imprimez et collez dans la cabine du camion',
+    `<div class="qr-big">
+       <div id="qr-canvas-container"></div>
+       <div class="qr-url">${url}</div>
+     </div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Fermer'; bC.addEventListener('click', closeModal);
+      const bP = document.createElement('button'); bP.className = 'btn-sm btn-add'; bP.textContent = 'Imprimer';
+      bP.addEventListener('click', () => {
+        const canvas = document.querySelector('#qr-canvas-container canvas');
+        if (canvas) {
+          const win = window.open('', '_blank');
+          win.document.write(`<html><body style="text-align:center;padding:40px">
+            <h2 style="font-family:sans-serif">Camion ${num}</h2>
+            <img src="${canvas.toDataURL()}" style="width:300px"><br>
+            <p style="font-family:monospace;font-size:12px">${url}</p>
+          </body></html>`);
+          win.print();
+        }
+      });
+      ac.append(bC, bP);
+      // Generate real QR code
+      setTimeout(() => {
+        const container = document.getElementById('qr-canvas-container');
+        if (container && window.QRCode) {
+          new QRCode(container, {
+            text: url,
+            width: 220, height: 220,
+            colorDark: '#000000', colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H,
+          });
+        }
+      }, 100);
+    }
+  );
+}
+
+function openTruckModal(id, action) {
+  const t = action === 'edit' ? allCamions.find(x => x.id === id) : {};
+  ctx = { type: 'truck', action, id };
+  openModal(
+    action === 'edit' ? 'Modifier le camion' : 'Nouveau camion', '',
+    `<div class="form-row">
+       <div class="form-group"><label class="form-label">Numéro</label><input class="form-input" id="f-num" type="text" placeholder="04" value="${t?.numero || ''}"></div>
+       <div class="form-group"><label class="form-label">Immatriculation</label><input class="form-input" id="f-immat" type="text" placeholder="AB-123-CD" value="${t?.immatriculation || ''}"></div>
+     </div>
+     <div class="form-group"><label class="form-label">Chauffeur habituel</label>
+       <select class="form-input" id="f-chauffeur">${sel(allChauffeurs, t?.chauffeur_id, 'id', 'nom')}</select></div>
+     <div class="form-group"><label class="form-label">Client habituel</label>
+       <select class="form-input" id="f-client">${sel(allClients, t?.client_id, 'id', 'nom')}</select></div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Annuler'; bC.addEventListener('click', closeModal);
+      const bS = document.createElement('button'); bS.className = 'btn-sm btn-add'; bS.textContent = 'Enregistrer'; bS.addEventListener('click', saveTruck);
+      ac.append(bC, bS);
+    }
+  );
+}
+
+async function saveTruck() {
+  const { action, id } = ctx;
+  const num   = document.getElementById('f-num').value.trim();
+  const immat = document.getElementById('f-immat').value.trim();
+  if (!num) { showToast('Numéro requis', 'danger'); return; }
+  try {
+    const payload = {
+      numero: num, immatriculation: immat,
+      chauffeur_id: document.getElementById('f-chauffeur').value || null,
+      client_id:    document.getElementById('f-client').value || null,
+    };
+    if (action === 'edit') await db(`camions?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+    else await db('camions', { method: 'POST', body: JSON.stringify(payload) });
+    await loadAll();
+    showToast(action === 'edit' ? 'Modifié ✓' : 'Ajouté ✓');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ CLIENTS
+function renderClients() {
+  const list = document.getElementById('list-clients');
+  list.innerHTML = allClients.length === 0
+    ? '<div class="loading-row">Aucun client</div>'
+    : allClients.map(c => `
+    <div class="manage-item">
+      <div class="manage-avatar" style="color:var(--accent2)">${c.nom[0]}</div>
+      <div><div class="manage-name">${c.nom}</div><div class="manage-sub">${c.adresse || '—'}</div></div>
+      <div class="manage-actions">
+        ${c.principal ? '<span class="badge badge-blue">Principal</span>' : ''}
+        <button class="action-btn" data-edit-client="${c.id}">Modifier</button>
+        <button class="action-btn del" data-del-client="${c.id}">Supprimer</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('[data-edit-client]').forEach(b => b.addEventListener('click', () => openClientModal(b.dataset.editClient, 'edit')));
+  list.querySelectorAll('[data-del-client]').forEach(b => b.addEventListener('click', () => openDeleteModal('clients', b.dataset.delClient)));
+}
+
+function openClientModal(id, action) {
+  const c = action === 'edit' ? allClients.find(x => x.id === id) : {};
+  ctx = { type: 'client', action, id };
+  openModal(
+    action === 'edit' ? 'Modifier le client' : 'Nouveau client', '',
+    `<div class="form-group"><label class="form-label">Nom de la société</label><input class="form-input" id="f-nom" type="text" placeholder="Ex: Logistique Express" value="${c?.nom || ''}"></div>
+     <div class="form-group"><label class="form-label">Adresse</label><input class="form-input" id="f-adresse" type="text" placeholder="Ex: Zone industrielle Nord" value="${c?.adresse || ''}"></div>
+     <div class="form-group"><label class="checkbox-row"><input type="checkbox" id="f-principal" ${c?.principal ? 'checked' : ''}> Client principal</label></div>`,
+    ac => {
+      const bC = document.createElement('button'); bC.className = 'btn-sm btn-cancel'; bC.textContent = 'Annuler'; bC.addEventListener('click', closeModal);
+      const bS = document.createElement('button'); bS.className = 'btn-sm btn-add'; bS.textContent = 'Enregistrer'; bS.addEventListener('click', saveClient);
+      ac.append(bC, bS);
+    }
+  );
+}
+
+async function saveClient() {
+  const { action, id } = ctx;
+  const nom     = document.getElementById('f-nom').value.trim();
+  const adresse = document.getElementById('f-adresse').value.trim();
+  const principal = document.getElementById('f-principal').checked;
+  if (!nom) { showToast('Le nom est requis', 'danger'); return; }
+  try {
+    if (action === 'edit') await db(`clients?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify({ nom, adresse, principal }) });
+    else await db('clients', { method: 'POST', body: JSON.stringify({ nom, adresse, principal }) });
+    await loadAll();
+    showToast(action === 'edit' ? 'Modifié ✓' : 'Ajouté ✓');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ DELETE
+function openDeleteModal(table, id) {
+  const labels = { chauffeurs: 'ce chauffeur', camions: 'ce camion', clients: 'ce client' };
+  ctx = { table, id };
+  openModal('Confirmer la suppression', '',
+    `<div class="delete-box"><p>Voulez-vous vraiment supprimer <strong>${labels[table]}</strong> ? Cette action est irréversible.</p>
+     <div class="delete-actions">
+       <button class="btn-sm btn-danger" id="btn-del-confirm">Oui, supprimer</button>
+       <button class="btn-sm btn-cancel" id="btn-del-cancel">Annuler</button>
+     </div></div>`, ac => {}
+  );
+  document.getElementById('btn-del-confirm').addEventListener('click', doDelete);
+  document.getElementById('btn-del-cancel').addEventListener('click', closeModal);
+}
+
+async function doDelete() {
+  const { table, id } = ctx;
+  try {
+    await db(`${table}?id=eq.${id}`, { method: 'DELETE', headers: { 'Prefer': '' } });
+    await loadAll();
+    showToast('Supprimé', 'danger');
+    closeModal();
+  } catch (e) { showToast('Erreur : ' + e.message, 'danger'); }
+}
+
+// ═══════════════ QR MINI
+const QP = [1,1,1,0,1,1,0,0,1,0,1,0,1,0,1,0,1,0,0,1,1,1,1,0,1];
+function makeQR(id) {
+  const g = document.getElementById(id); if (!g) return; g.innerHTML = '';
+  QP.forEach(v => { const c = document.createElement('div'); c.className = 'qr-cell'; c.style.background = v ? 'var(--text)' : 'transparent'; g.appendChild(c); });
+}
+
+// ═══════════════ NAV
+document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    btn.classList.add('active');
+  });
+});
+
+// ═══════════════ STATIC BUTTONS
+document.getElementById('btn-add-driver').addEventListener('click', () => openDriverModal(null, 'add'));
+document.getElementById('btn-add-truck').addEventListener('click', () => openTruckModal(null, 'add'));
+document.getElementById('btn-add-client').addEventListener('click', () => openClientModal(null, 'add'));
+document.getElementById('btn-add-manuel').addEventListener('click', openTrajetManuel);
+document.getElementById('btn-refresh').addEventListener('click', loadAll);
+
+// ═══════════════ INIT
+document.getElementById('todayDate').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+loadAll();
+// Auto-refresh toutes les 30 secondes
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

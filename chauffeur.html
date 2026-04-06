@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Transport — Chauffeur</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap');
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3350;--accent:#4f8fff;--accent2:#38d9a9;--warn:#ff9f43;--danger:#ff6b6b;--text:#e8eaf6;--muted:#6b7280;--radius:16px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 20px 64px;}
+.header{width:100%;max-width:420px;display:flex;align-items:center;gap:14px;margin-bottom:32px;}
+.truck-badge{background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:14px;font-weight:500;padding:8px 16px;border-radius:10px;letter-spacing:.06em;}
+.header-title{font-size:20px;font-weight:600;}
+.header-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.status-bar{width:100%;max-width:420px;display:flex;border-radius:14px;overflow:hidden;border:1px solid var(--border);margin-bottom:28px;}
+.sh{flex:1;padding:14px 18px;}
+.sh+.sh{border-left:1px solid var(--border);}
+.sh.done{background:rgba(56,217,169,.07);}
+.sh.active{background:rgba(79,143,255,.07);}
+.sh.waiting{background:var(--surface);opacity:.55;}
+.sh-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px;}
+.sh-label.done{color:var(--accent2);}.sh-label.active{color:var(--accent);}.sh-label.waiting{color:var(--muted);}
+.sh-km{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;}
+.sh-time{font-size:11px;color:var(--muted);margin-top:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:420px;margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:600;margin-bottom:6px;}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:22px;line-height:1.5;}
+.done-banner{background:rgba(56,217,169,.08);border:1px solid rgba(56,217,169,.22);border-radius:12px;padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.done-icon{width:34px;height:34px;border-radius:50%;background:rgba(56,217,169,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.done-icon svg{width:16px;height:16px;stroke:var(--accent2);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.done-title{font-size:13px;font-weight:600;color:var(--accent2);}
+.done-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.photo-zone{border:2px dashed var(--border);border-radius:14px;padding:36px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;overflow:hidden;}
+.photo-zone:hover{border-color:var(--accent);background:rgba(79,143,255,.04);}
+.photo-zone.has-photo{border:2px solid var(--accent2);padding:0;}
+.photo-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.photo-zone img{width:100%;border-radius:12px;display:block;max-height:260px;object-fit:cover;}
+.pz-icon{width:52px;height:52px;background:var(--surface2);border-radius:14px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;}
+.pz-icon svg{width:26px;height:26px;stroke:var(--accent);fill:none;stroke-width:1.5;stroke-linecap:round;}
+.pz-label{font-size:15px;font-weight:600;margin-bottom:5px;}
+.pz-sub{font-size:12px;color:var(--muted);}
+.photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;border-radius:12px;opacity:0;transition:opacity .2s;}
+.photo-zone.has-photo:hover .photo-overlay{opacity:1;}
+.photo-overlay span{color:#fff;font-size:13px;font-weight:500;}
+.km-chip{background:var(--surface2);border-radius:10px;padding:14px 18px;margin-top:14px;display:flex;align-items:center;gap:12px;}
+.km-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.km-val{font-family:'DM Mono',monospace;font-size:21px;font-weight:500;}
+.km-tag{font-size:11px;color:var(--muted);margin-left:auto;}
+.progress-bar{width:100%;max-width:420px;height:3px;background:var(--border);border-radius:2px;margin-bottom:12px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;width:0%;}
+.spinner{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn{width:100%;max-width:420px;padding:17px;border-radius:14px;border:none;font-family:'DM Sans',sans-serif;font-size:16px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-success{background:var(--accent2);color:#0a1a14;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.error-box{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.25);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--danger);width:100%;max-width:420px;margin-bottom:12px;display:none;}
+.toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:var(--accent2);color:#0a1a14;padding:14px 26px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:100;white-space:nowrap;}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="truck-badge" id="truckBadge">CAMION —</div>
+  <div>
+    <div class="header-title">Rapport de poste</div>
+    <div class="header-sub" id="datetime"></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="sh waiting" id="sh-debut">
+    <div class="sh-label waiting" id="sh-debut-label">Début de poste</div>
+    <div class="sh-km" id="sh-debut-km">—</div>
+    <div class="sh-time" id="sh-debut-time">Non envoyé</div>
+  </div>
+  <div class="sh waiting" id="sh-fin">
+    <div class="sh-label waiting" id="sh-fin-label">Fin de poste</div>
+    <div class="sh-km" id="sh-fin-km">—</div>
+    <div class="sh-time" id="sh-fin-time">En attente</div>
+  </div>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+<div class="error-box" id="errorBox"></div>
+
+<div class="card" id="mainCard">
+  <div class="done-banner" id="doneBanner" style="display:none">
+    <div class="done-icon"><svg viewBox="0 0 16 16"><polyline points="2,8 6,12 14,4"/></svg></div>
+    <div>
+      <div class="done-title">Début de poste enregistré</div>
+      <div class="done-sub">KM : <span id="recap-km" style="font-family:'DM Mono',monospace">—</span> · Envoyé à <span id="recap-heure">—</span></div>
+    </div>
+  </div>
+  <div class="card-title" id="cardTitle">Photo — Début de poste</div>
+  <div class="card-sub" id="cardSub">Photographiez le compteur kilométrique et le tachygraphe. Les données seront lues automatiquement.</div>
+  <div class="photo-zone" id="photoZone">
+    <input type="file" id="photoInput" accept="image/*" capture="environment">
+    <div class="pz-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+    <div class="pz-label" id="pzLabel">Prendre la photo</div>
+    <div class="pz-sub">Compteur km + tachygraphe visibles</div>
+    <div class="photo-overlay"><span>Changer la photo</span></div>
+  </div>
+  <div class="km-chip" id="kmChip" style="display:none">
+    <div class="km-dot" id="kmDot" style="background:var(--accent2)"></div>
+    <div class="km-val" id="kmVal">—</div>
+    <div class="km-tag" id="kmTag">KM lu automatiquement</div>
+  </div>
+</div>
+
+<button class="btn btn-primary" id="mainBtn" disabled>Envoyer la photo</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG SUPABASE ─────────────────────────────────────
+const SUPA_URL = 'https://bbkmlnaskmgawkkmhzvh.supabase.co';
+const SUPA_KEY = 'sb_publishable_Ma2c6MV9MmWmyi6B-LX6LQ_oLQLxVqv';
+
+// ── ÉTAT ────────────────────────────────────────────────
+// L'URL du camion : /chauffeur.html?camion=01
+const params   = new URLSearchParams(location.search);
+const CAMION_NUM = params.get('camion') || '01';
+
+let camionData   = null;   // données du camion depuis Supabase
+let trajetId     = null;   // ID du trajet en cours
+let debutFait    = false;
+let photoFile    = null;
+let photoReady   = false;
+
+// ── HELPERS SUPABASE ────────────────────────────────────
+async function supaFetch(path, options = {}) {
+  const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
+    ...options,
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(options.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+async function uploadPhoto(file, path) {
+  const res = await fetch(`${SUPA_URL}/storage/v1/object/photos/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': file.type,
+    },
+    body: file,
+  });
+  if (!res.ok) throw new Error('Erreur upload photo');
+  return `${SUPA_URL}/storage/v1/object/public/photos/${path}`;
+}
+
+// ── INIT ────────────────────────────────────────────────
+async function init() {
+  updateTime();
+  setInterval(updateTime, 1000);
+  document.getElementById('truckBadge').textContent = 'CAMION ' + CAMION_NUM;
+
+  try {
+    // Charger le camion depuis Supabase
+    const camions = await supaFetch(
+      `camions?numero=eq.${CAMION_NUM}&select=*,chauffeur:chauffeurs(id,nom),client:clients(id,nom)`
+    );
+    if (!camions || camions.length === 0) {
+      showError('Camion ' + CAMION_NUM + ' introuvable. Vérifiez le QR code.');
+      return;
+    }
+    camionData = camions[0];
+
+    // Vérifier si un trajet est déjà en cours aujourd'hui (début envoyé, pas de fin)
+    const today = new Date().toISOString().split('T')[0];
+    const trajets = await supaFetch(
+      `trajets?camion_id=eq.${camionData.id}&date=eq.${today}&km_fin=is.null&select=*`
+    );
+    if (trajets && trajets.length > 0) {
+      // Début déjà fait — mode fin de poste
+      const t = trajets[0];
+      trajetId = t.id;
+      debutFait = true;
+      afficherModeFin(t.km_debut, new Date(t.heure_debut).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h'));
+    } else {
+      // Mode début de poste
+      afficherModeDebut();
+    }
+  } catch(e) {
+    showError('Erreur connexion : ' + e.message);
+  }
+}
+
+function afficherModeDebut() {
+  const sd = document.getElementById('sh-debut');
+  sd.classList.replace('waiting','active');
+  document.getElementById('sh-debut-label').className = 'sh-label active';
+  document.getElementById('sh-debut-time').textContent = 'Photo requise';
+}
+
+function afficherModeFin(km, heure) {
+  // Barre status
+  const sd = document.getElementById('sh-debut');
+  sd.classList.replace('waiting','done');
+  document.getElementById('sh-debut-label').className = 'sh-label done';
+  document.getElementById('sh-debut-km').textContent = km ? km.toLocaleString('fr-FR') + ' km' : '—';
+  document.getElementById('sh-debut-time').textContent = heure || 'Envoyé';
+  const sf = document.getElementById('sh-fin');
+  sf.classList.replace('waiting','active');
+  document.getElementById('sh-fin-label').className = 'sh-label active';
+  document.getElementById('sh-fin-time').textContent = 'Photo requise';
+  // Banner
+  document.getElementById('doneBanner').style.display = 'flex';
+  document.getElementById('recap-km').textContent = km ? km.toLocaleString('fr-FR') : '—';
+  document.getElementById('recap-heure').textContent = heure || '—';
+  // Textes
+  document.getElementById('cardTitle').textContent = 'Photo — Fin de poste';
+  document.getElementById('cardSub').textContent = 'Photographiez le compteur et le tachygraphe en fin de journée.';
+  document.getElementById('pzLabel').textContent = 'Prendre la photo de fin';
+  document.getElementById('kmDot').style.background = 'var(--warn)';
+  document.getElementById('kmTag').textContent = 'KM fin lu automatiquement';
+}
+
+function updateTime() {
+  document.getElementById('datetime').textContent =
+    new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}) +
+    ' — ' + new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── PHOTO ────────────────────────────────────────────────
+document.getElementById('photoInput').addEventListener('change', function() {
+  if (!this.files[0]) return;
+  photoFile = this.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    const zone = document.getElementById('photoZone');
+    zone.innerHTML = `<img src="${e.target.result}"><div class="photo-overlay"><span>Changer la photo</span></div>`;
+    zone.classList.add('has-photo');
+    // Re-attach file input
+    const ni = document.createElement('input');
+    ni.type='file'; ni.accept='image/*'; ni.capture='environment';
+    ni.style.cssText='position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%';
+    ni.addEventListener('change', function(){ document.getElementById('photoInput').dispatchEvent; photoFile=this.files[0]; reloadPhoto(this); });
+    zone.appendChild(ni);
+    photoReady = true;
+    document.getElementById('mainBtn').disabled = false;
+    // Simuler lecture IA (sera remplacé par Claude Vision en Phase 2)
+    setTimeout(() => {
+      document.getElementById('kmChip').style.display = 'flex';
+      document.getElementById('kmVal').textContent = debutFait ? '— km' : '— km';
+      document.getElementById('kmTag').textContent = 'KM sera lu par l\'IA';
+    }, 800);
+  };
+  reader.readAsDataURL(this.files[0]);
+});
+
+function reloadPhoto(input) {
+  if (!input.files[0]) return;
+  photoFile = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.querySelector('#photoZone img');
+    if (img) img.src = e.target.result;
+    photoReady = true;
+    document.getElementById('mainBtn').disabled = false;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+document.getElementById('photoZone').addEventListener('click', () => {
+  document.getElementById('photoInput').click();
+});
+
+// ── ENVOI ────────────────────────────────────────────────
+document.getElementById('mainBtn').addEventListener('click', sendPhoto);
+
+async function sendPhoto() {
+  if (!photoReady || !photoFile) return;
+  const btn = document.getElementById('mainBtn');
+  btn.innerHTML = '<span class="spinner"></span>Envoi en cours...';
+  btn.disabled = true;
+  document.getElementById('progressFill').style.width = '30%';
+
+  try {
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const tsStr   = now.getTime();
+    const type    = debutFait ? 'fin' : 'debut';
+    const photoPath = `camion${CAMION_NUM}/${dateStr}_${type}_${tsStr}.jpg`;
+
+    // 1. Upload photo
+    document.getElementById('progressFill').style.width = '50%';
+    const photoUrl = await uploadPhoto(photoFile, photoPath);
+
+    // 2. Créer ou mettre à jour le trajet
+    document.getElementById('progressFill').style.width = '75%';
+    if (!debutFait) {
+      // Créer le trajet avec photo début
+      const result = await supaFetch('trajets', {
+        method: 'POST',
+        body: JSON.stringify({
+          camion_id:       camionData.id,
+          chauffeur_id:    camionData.chauffeur_id,
+          client_id:       camionData.client_id,
+          date:            dateStr,
+          heure_debut:     now.toISOString(),
+          photo_debut_url: photoUrl,
+          statut:          'En route',
+          source:          'photo',
+        }),
+      });
+      trajetId = result[0].id;
+    } else {
+      // Mettre à jour le trajet avec photo fin
+      await supaFetch(`trajets?id=eq.${trajetId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          heure_fin:      now.toISOString(),
+          photo_fin_url:  photoUrl,
+          statut:         'En attente',
+        }),
+      });
+    }
+
+    document.getElementById('progressFill').style.width = '100%';
+
+    if (!debutFait) {
+      // Transition vers mode fin
+      debutFait = true;
+      const heure = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
+      // Reset photo zone
+      const zone = document.getElementById('photoZone');
+      zone.className = 'photo-zone';
+      zone.innerHTML = `
+        <input type="file" id="photoInput" accept="image/*" capture="environment">
+        <div class="pz-icon"><svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="pz-label" id="pzLabel">Prendre la photo de fin</div>
+        <div class="pz-sub">Compteur km + tachygraphe visibles</div>
+        <div class="photo-overlay"><span>Changer la photo</span></div>`;
+      document.getElementById('photoInput').addEventListener('change', function() {
+        if (!this.files[0]) return;
+        photoFile = this.files[0];
+        reloadPhoto(this);
+      });
+      zone.addEventListener('click', () => document.getElementById('photoInput').click());
+      document.getElementById('kmChip').style.display = 'none';
+      photoReady = false; photoFile = null;
+      btn.innerHTML = 'Envoyer la photo';
+      btn.disabled = true;
+      afficherModeFin(null, heure);
+      document.getElementById('progressFill').style.width = '0%';
+      showToast('Début de poste enregistré ✓');
+    } else {
+      // Fin envoyée
+      btn.innerHTML = 'Rapport envoyé ✓';
+      btn.className = 'btn btn-success';
+      const sf = document.getElementById('sh-fin');
+      sf.classList.replace('active','done');
+      document.getElementById('sh-fin-label').className = 'sh-label done';
+      document.getElementById('sh-fin-time').textContent = now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}).replace(':','h');
+      showToast('Fin de poste envoyée — patron notifié ✓');
+    }
+  } catch(e) {
+    btn.innerHTML = 'Envoyer la photo';
+    btn.disabled = false;
+    document.getElementById('progressFill').style.width = '0%';
+    showError('Erreur : ' + e.message);
+  }
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+  setTimeout(() => box.style.display = 'none', 6000);
+}
+
+let tt;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+init();
+</script>
+</body>
+</html>
