@@ -133,19 +133,23 @@ let photoReady   = false;
 
 // ── HELPERS SUPABASE ────────────────────────────────────
 async function supaFetch(path, options = {}) {
+  const method = options.method || 'GET';
+  const extraHeaders = {};
+  if (method === 'POST') extraHeaders['Prefer'] = 'return=representation';
+  if (method === 'DELETE') extraHeaders['Prefer'] = 'return=minimal';
   const res = await fetch(SUPA_URL + '/rest/v1/' + path, {
     ...options,
     headers: {
       'apikey': SUPA_KEY,
       'Authorization': 'Bearer ' + SUPA_KEY,
       'Content-Type': 'application/json',
-      'Prefer': 'return=representation',
+      ...extraHeaders,
       ...(options.headers || {}),
     },
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(err);
+    throw new Error(err || 'Erreur ' + res.status);
   }
   const text = await res.text();
   return text ? JSON.parse(text) : null;
